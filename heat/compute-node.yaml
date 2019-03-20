@@ -4,10 +4,6 @@ heat_template_version: 2015-04-30
 description: Template to deploy a virtual compute cluster. It required compute-node.yaml
 
 parameters:
-  cluster_prefix:
-    type: string
-    label: Cluster prefix
-    description: Prefix for the name of the cluster nodes
   image_name:
     type: string
     label: Image Name
