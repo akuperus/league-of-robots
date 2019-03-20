@@ -1,0 +1,176 @@
+---
+heat_template_version: 2015-04-30
+
+description: Simple Example template to deploy a virtual compute cluster.
+
+parameters:
+  cluster_name:
+    type: string
+    label: Cluster name
+    description: Name of the cluster to be generated
+  cluster_prefix:
+    type: string
+    label: Cluster prefix
+    description: Prefix for the names of the cluster nodes
+  n_compute_nodes:
+    type: string
+    label: Number of compute nodes
+    description: Number of compute nodes to generate
+    default: 2
+  image_name:
+    type: string
+    label: Image Name
+    description: Name of image to be used for compute instance
+    default: centos7
+  public_net:
+    type: string
+    label: Public Net Name
+    description: Public network used for router.
+  ssh_key:
+    type: string
+    label: ssh key name.
+    description: ssh public key name. (Must be uploaded to openstack first)
+  compute_flavor:
+    type: string
+    label: Flavor for compute nodes,
+    description: Flavor with which to start compute nodes.
+    default: m1.medium
+  aux_flavor:
+    type: string
+    label: Flavor for auxiliary nodes.
+    description: Flavor with which to start auxiliary nodes. (for now only the interface machine)
+    default: m1.medium
+  cidr:
+    type: string
+    label: Cidr for internal subnet
+    description: Cidr for the subnet of the internal user network.
+    default: 10.0.42.0/24
+    type: string
+  volume_size:
+    type: string
+    label: Size (GB)
+    description: Size (GB) of the local volume for each node
+    default: 20
+  home_size:
+    type: string
+    label: Size (GB)
+    description: Size (GB) of the volume for the shared home directory
+    default: 250
+
+resources:
+  internal_net:
+    type: OS::Neutron::Net
+    properties:
+      name: {list_join: ['-', [ {get_param: cluster_name}, 'network']]}
+
+  internal_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: {get_resource: internal_net}
+      cidr: {get_param: cidr}
+      dns_nameservers: ["129.125.4.6", "129.125.36.10"]
+      ip_version: 4
+
+  internal_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {network: {get_param: public_net}}
+
+  internal_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: {get_resource: internal_router}
+      subnet: {get_resource: internal_subnet}
+
+  public_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: {get_resource: internal_net}
+      fixed_ips:
+        - subnet_id: {get_resource: internal_subnet}
+      security_groups:
+        - default
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: {get_param: public_net}
+      port_id: {get_resource: public_port}
+
+  interface:  # User-interface for cluster-operation
+    type: OS::Nova::Server
+    properties:
+      name: {get_param: cluster_name}
+      key_name: {get_param: ssh_key}
+      image: {get_param: image_name}
+      flavor: {get_param: aux_flavor}
+      networks:
+        - port: {get_resource: public_port}
+
+  portal:  # Portal for access to the nodes
+    type: OS::Nova::Server
+    properties:
+      name: portal
+      key_name: {get_param: ssh_key}
+      image: {get_param: image_name}
+      flavor: {get_param: aux_flavor}
+      networks:
+        - network: {get_resource: internal_net}
+
+  dai_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: home_size}
+
+  dai:  # Machine to run slurm and other admin tools on.
+    type: OS::Nova::Server
+    properties:
+      name: {list_join: ['-', [ {get_param: cluster_prefix}, 'dai']]}
+      key_name: {get_param: ssh_key}
+      image: {get_param: image_name}
+      flavor: {get_param: aux_flavor}
+      networks:
+        - network: {get_resource: internal_net}
+
+  dai_volume_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: {get_resource: dai_volume}
+      instance_uuid: {get_resource: dai}
+
+  sai_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: volume_size}
+
+  sai:  # Machine to run slurm and other admin tools on.
+    type: OS::Nova::Server
+    properties:
+      name: {list_join: ['-', [ {get_param: cluster_prefix},'sai']]}
+      key_name: {get_param: ssh_key}
+      image: {get_param: image_name}
+      flavor: {get_param: aux_flavor}
+      networks:
+        - network: {get_resource: internal_net}
+
+  sai_volume_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: {get_resource: sai_volume}
+      instance_uuid: {get_resource: sai}
+
+  compute-nodes:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: {get_param: n_compute_nodes}
+      resource_def:
+        type: compute-node.yaml
+        properties:
+          cluster_prefix: {get_param: cluster_prefix}
+          image_name: {get_param: image_name}
+          ssh_key: {get_param: ssh_key}
+          compute_flavor: {get_param: compute_flavor}
+          volume_size: {get_param: volume_size}
+          private_net: {get_resource: internal_net}
+          node_name: {list_join: ['-', [ {get_param: cluster_prefix},'vcompute%index%']]}
+          volume_name: {list_join: ['-', [ {get_param: cluster_prefix},'volume%index%']]}

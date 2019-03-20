@@ -1,0 +1,63 @@
+---
+heat_template_version: 2015-04-30
+
+description: Template to deploy a virtual compute cluster. It required compute-node.yaml
+
+parameters:
+  cluster_prefix:
+    type: string
+    label: Cluster prefix
+    description: Prefix for the name of the cluster nodes
+  image_name:
+    type: string
+    label: Image Name
+    description: Name of image to be used for compute instance
+  ssh_key:
+    type: string
+    label: ssh key name.
+    description: ssh public key name. (Must be uploaded to openstack first)
+  compute_flavor:
+    type: string
+    label: Flavor for compute nodes,
+    description: Flavor with which to start compute nodes.
+  volume_size:
+    type: string
+    label: Size (GB)
+    description: Size (GB) of the volume for each compute node
+  private_net:
+    type: string
+    label: ID of internal network
+    description: ID of internal network
+  node_name:
+    type: string
+    label: Name of compute node
+    description: Name of compute node
+  volume_name:
+    type: string
+    label: Name of compute node volume
+    description: Name of compute node volume
+
+
+
+resources:
+  volume:
+    type: OS::Cinder::Volume
+    properties: 
+      size: {get_param: volume_size}
+      name: {get_param: volume_name}
+
+  compute-node:
+    type: OS::Nova::Server
+    properties:
+        name: {get_param: node_name}
+        key_name: {get_param: ssh_key}
+        image: {get_param: image_name}
+        flavor: {get_param: compute_flavor}
+        networks:
+          - network: {get_param: private_net}
+ 
+  compute_volume_attachments:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: {get_resource: 'volume'}
+      instance_uuid: {get_resource: 'compute-node'}
