@@ -4,6 +4,10 @@ heat_template_version: 2015-04-30
 description: Template to deploy a virtual compute cluster. It required compute-node.yaml
 
 parameters:
+  cluster_prefix:
+    type: string
+    label: Cluster prefix
+    description: Prefix for the names of the cluster nodes
   image_name:
     type: string
     label: Image Name
@@ -57,3 +61,13 @@ resources:
     properties:
       volume_id: {get_resource: 'volume'}
       instance_uuid: {get_resource: 'compute-node'}
+
+outputs:
+  compute_node_ip:
+    description: IP adress of compute node
+    value: {get_attr: [compute-node, first_address]}
+  compute_node_name:
+    description: hostname of compute node
+    value: {get_attr: [compute-node, name]}
+
+      
