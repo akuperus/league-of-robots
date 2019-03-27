@@ -12,6 +12,11 @@ parameters:
     type: string
     label: Cluster prefix
     description: Prefix for the names of the cluster nodes
+  jumphost_name:
+    type: string
+    label: Jumphost name
+    description: Jumphost server name
+    default: portal
   n_compute_nodes:
     type: string
     label: Number of compute nodes
@@ -107,10 +112,10 @@ resources:
       networks:
         - port: {get_resource: public_port}
 
-  portal:  # Portal for access to the nodes
+  jumphost:  # Portal for access to the nodes
     type: OS::Nova::Server
     properties:
-      name: portal
+      name: {get_param: jumphost_name}
       key_name: {get_param: ssh_key}
       image: {get_param: image_name}
       flavor: {get_param: aux_flavor}
@@ -122,7 +127,7 @@ resources:
     properties:
       size: {get_param: home_size}
 
-  dai:  # Machine to run slurm and other admin tools on.
+  dai:  # Machine to run software deployment process
     type: OS::Nova::Server
     properties:
       name: {list_join: ['-', [ {get_param: cluster_prefix}, 'dai']]}
@@ -174,3 +179,40 @@ resources:
           private_net: {get_resource: internal_net}
           node_name: {list_join: ['-', [ {get_param: cluster_prefix},'vcompute%index%']]}
           volume_name: {list_join: ['-', [ {get_param: cluster_prefix},'volume%index%']]}
+outputs:
+  cluster_name:
+    description: string
+    value: {get_param: cluster_name}
+  sai_ip:
+    description: The IP address of the sys admin interface
+    value: {get_attr: [sai, first_address]}
+  sai_hostname:
+    description: hostname of sys admin interface
+    value: {get_attr: [sai, name]}
+  dai_ip:
+    description: The IP address of the deploy admin interface
+    value: {get_attr: [dai, first_address]}
+  dai_hostname:
+    description: hostname of deploy admin interface
+    value: {get_attr: [dai, name]}
+  jumphost_ip:
+    description: The IP address of the jump host
+    value: {get_attr: [jumphost, first_address]}
+  jumphost_hostname:
+    description: hostname of the jumphost
+    value: {get_attr: [jumphost, name]}
+  interface_ip:
+    description: The IP address of the user interface
+    value: {get_attr: [interface, first_address]}
+  interface_hostname:
+    description: hostname of the user interface
+    value: {get_attr: [interface, name]}
+  compute_ip:
+    description: The IP address of compute nodes
+    value: {get_attr: [compute-nodes, compute_node_ip]}
+  compute_hostname:
+    description: hostname of compute node
+    value: {get_attr: [compute-nodes, compute_node_name]}
+  floating_ip:
+    description: The floating public IP address
+    value: {get_attr: [floating_ip, floating_ip_address]}
