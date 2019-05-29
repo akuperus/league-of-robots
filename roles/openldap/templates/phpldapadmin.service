@@ -11,6 +11,8 @@ ExecStartPre=-/usr/bin/docker rm %n
 ExecStartPre=/usr/bin/docker pull osixia/phpldapadmin:0.7.2
 ExecStart=/usr/bin/docker run -i --name %n --network host \
     --env PHPLDAPADMIN_LDAP_HOSTS={{ uri_ldap }} \
+    --volume /srv/openldap/phpldapadmin/posixAccount.xml:/var/www/phpldapadmin/templates/creation/posixAccount.xml \
+    --volume /srv/openldap/phpldapadmin/posixGroup.xml:/var/www/phpldapadmin/templates/creation/posixGroup.xml \
     osixia/phpldapadmin:0.7.2
 
 [Install]
