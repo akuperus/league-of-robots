@@ -27,13 +27,13 @@ ui_ethernet_interfaces:
   - 'eth1'
 ssh_host_signer_ca_private_key: "{{ ssh_host_signer_ca_keypair_dir }}/umcg-hpc-development-ca"
 use_ldap: yes
-uri_ldap: hc-dai
-uri_ldaps: hc-dai
+uri_ldap: ldap.pilot.scz.lab.surf.nl
+uri_ldaps: ldap.pilot.scz.lab.surf.nl
 ldap_port: 389
 ldaps_port: 636
-ldap_base: ou=users,dc=hpc,dc=rug,dc=nl
-ldap_binddn: cn=admin,ou=users,dc=hpc,dc=rug,dc=nl
-ldap_domain: hpc.rug.nl
+ldap_base: o=ElixirNL,dc=pilot-clients,dc=scz,dc=lab,dc=surf,dc=nl
+ldap_binddn: cn=admin,o=ElixirNL,dc=pilot-clients,dc=scz,dc=lab,dc=surf,dc=nl
+ldap_domain: pilot-clients.scz.lab.surf.nl
 key_name: Gerben
 image_cirros: cirros-0.3.4-x86_64-disk.img
 image_centos7: centos7
