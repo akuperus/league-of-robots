@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""
+This tool is to be used from pg-login and to be run in a screen.
+It will update the fstab for /apps on all nodes and issue a remount.
+It will take care of draining and resuming a node.
+"""
+
+from collections import namedtuple
+from subprocess import run
+import warnings
+
+
+def get_node_states():
+    """
+    Retreive the state of all nodes in the cluster.
+
+    Returns: list (list of Nodes objects)
+    """
+    proc = run(['sinfo', '-h', '-o', '%n,%T'], capture_output=True)
+    proc.check_returncode()
+
+    Node = namedtuple('Node', ['hostname', 'state'])
+
+    # make a list of named tuples with hostname and state properties
+    nodes = [
+        Node(*i.split(',')) for i in proc.stdout.decode().split('\n')
+        if i != ''
+    ]
+
+    return nodes
+
+
+if __name__ == '__main__':
+
+    warnings.filterwarnings(action='ignore', module='.*paramiko.*')
+    nodes = get_node_states()
+
+    for node in filter(lambda n: n.state == 'drained', nodes):
+        print(f'Resuming {node.hostname}')
+        proc = run([
+            'scontrol', 'update', 'nodename={}'.format(node.hostname),
+            'state=resume'
+        ])
+        proc.check_returncode()
