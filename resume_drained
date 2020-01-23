@@ -6,7 +6,7 @@ It will take care of draining and resuming a node.
 """
 
 from collections import namedtuple
-from subprocess import run
+from subprocess import PIPE, run
 import warnings
 
 
@@ -16,7 +16,7 @@ def get_node_states():
 
     Returns: list (list of Nodes objects)
     """
-    proc = run(['sinfo', '-h', '-o', '%n,%T'], capture_output=True)
+    proc = run(['sinfo', '-h', '-o', '%n,%T'], stdout=PIPE)
     proc.check_returncode()
 
     Node = namedtuple('Node', ['hostname', 'state'])
