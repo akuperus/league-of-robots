@@ -156,6 +156,12 @@
     - shared_storage
     - slurm-client
     - regular-users
+  tasks:
+    - name: 'increase the file limit'
+      lineinfile:
+        path: '/etc/security/limits.conf'
+        line: '*       hard    nofile          65536'
+      become: true
 
 - name: 'F. Roles for documentation servers.'
   hosts:
